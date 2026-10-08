@@ -519,6 +519,7 @@
         <div class="filter-controls">
           <span class="filter-label">统计范围</span>
           <select id="rangeSelect" class="filter-select" aria-label="统计范围">
+            <option value="this-week">本周</option>
             <option value="4">近 4 周</option>
             <option value="8">近 8 周</option>
             <option value="12">近 12 周</option>
@@ -837,7 +838,20 @@
 
         let weeks = [...byWeek.entries()].sort(([a], [b]) => a.localeCompare(b));
         const range = document.getElementById('rangeSelect').value;
-        if (range !== 'all') weeks = weeks.slice(-Number(range));
+        if (range === 'this-week') {
+          const currentWeek = new Date();
+          currentWeek.setHours(0, 0, 0, 0);
+          currentWeek.setDate(currentWeek.getDate() - ((currentWeek.getDay() + 6) % 7));
+          const currentWeekKey = currentWeek.toISOString().slice(0, 10);
+          weeks = weeks.filter(([date]) => date === currentWeekKey);
+        } else if (range !== 'all') {
+          weeks = weeks.slice(-Number(range));
+        }
+        if (!weeks.length) {
+          plot.classList.remove('has-chart');
+          plot.textContent = range === 'this-week' ? '本周暂无创建数据' : '所选范围内暂无创建数据';
+          return;
+        }
         const width = 900;
         const height = 190;
         const max = Math.max(1, ...weeks.map(([, v]) => Math.max(v.open, v.closed)));
