@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>飞书项目 Bug 统计</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --panel-alt: #f8fafc;
+        --line: #e5e7eb;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --blue: #2563eb;
+        --green: #16a34a;
+        --orange: #f59e0b;
+        --red: #dc2626;
+        --purple: #7c3aed;
+        --gray: #64748b;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 18px;
+        margin-bottom: 22px;
+      }
+
+      .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: 0.2s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        border-color: var(--blue);
+      }
+
+      .btn.primary {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+      }
+
+      .upload {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--panel-alt);
+        border: 1px dashed #cbd5e1;
+        padding: 10px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .upload input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 14px;
+        color: var(--text);
+        background: #fbfdff;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+
+      .stat-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 16px;
+      }
+
+      .stat-label {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .stat-value.blue { color: var(--blue); }
+      .stat-value.green { color: var(--green); }
+      .stat-value.orange { color: var(--orange); }
+      .stat-value.red { color: var(--red); }
+      .stat-value.gray { color: var(--gray); }
+      .stat-value.purple { color: var(--purple); }
+
+      .charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .chart-panel {
+        padding: 18px;
+      }
+
+      .chart-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .bar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .bar-item {
+        display: grid;
+        grid-template-columns: 70px 1fr 50px;
+        gap: 8px;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .bar-item:hover .bar-label,
+      .bar-item:hover .bar-value {
+        color: var(--blue);
+      }
+
+      .bar-label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .bar-track {
+        height: 10px;
+        background: #eef2f7;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+
+      .bar-value {
+        text-align: right;
+        font-size: 13px;
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .table-wrap {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      th, td {
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        padding: 10px 12px;
+        font-size: 13px;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+      }
+
+      tr:hover td {
+        background: #f8fbff;
+      }
+
+      .tag {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .tag.closed { background: #e5e7eb; color: #374151; }
+      .tag.open { background: #dbeafe; color: #1d4ed8; }
+      .tag.progress { background: #fef3c7; color: #b45309; }
+      .tag.high { background: #fee2e2; color: #b91c1c; }
+      .tag.medium { background: #fef3c7; color: #b45309; }
+      .tag.low { background: #dcfce7; color: #15803d; }
+
+      .empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      @media (max-width: 720px) {
+        .container { padding: 16px; }
+        h1 { font-size: 24px; }
+        .toolbar-row { flex-direction: column; align-items: stretch; }
+        .btn, .upload { width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>飞书项目 Bug 统计</h1>
+      </div>
+
+      <div class="panel toolbar">
+        <div class="toolbar-row">
+          <label class="upload">
+            导入 CSV / JSON
+            <input id="fileInput" type="file" accept=".csv,.json,.txt" />
+          </label>
+          <button id="demoBtn" class="btn">恢复导出概览</button>
+          <button id="syncBtn" class="btn">刷新同步到飞书</button>
+          <button id="parseBtn" class="btn primary">开始统计</button>
+        </div>
+
+        <div id="syncStatus" class="empty" style="padding: 8px 0 0; display: none; color: var(--muted);">等待同步…</div>
+        <textarea id="rawInput" placeholder="请导入真实的飞书导出 CSV / Excel 转 CSV。当前已核对导出表中共 15 条问题记录，分项统计需导入真实文件后再计算。"></textarea>
+      </div>
+
+      <div id="statsGrid" class="stats-grid"></div>
+
+      <div class="charts">
+        <div class="panel chart-panel">
+          <div class="chart-title">按状态</div>
+          <div id="statusChart" class="bar-list"></div>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-title">按优先级</div>
+          <div id="priorityChart" class="bar-list"></div>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-title">按所属项目</div>
+          <div id="moduleChart" class="bar-list"></div>
+        </div>
+      </div>
+
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>标题 / Bug链接</th>
+              <th>状态</th>
+              <th>优先级</th>
+              <th>所属项目</th>
+              <th>研发人员</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const demoData = `标题,状态,优先级,模块,负责人,创建时间
+登录失败后页面白屏,处理中,高,登录模块,王洋,2026-09-10
+创建订单接口返回500,待处理,高,订单模块,李静,2026-09-11
+支付成功但状态未更新,已关闭,中,支付模块,赵强,2026-09-12
+消息通知重复发送,待处理,中,消息模块,刘晨,2026-09-13
+导出报表字段丢失,已解决,低,报表模块,孙莉,2026-09-14
+用户信息编辑后异常,处理中,高,用户中心,周杰,2026-09-15
+审批流超时跳转错误,待处理,高,审批模块,何凯,2026-09-16
+批量导入重复记录,已解决,中,数据导入,田野,2026-09-17
+权限校验漏判,已关闭,高,权限模块,陈明,2026-09-18
+报表筛选无效,待处理,中,报表模块,何凯,2026-09-19
+消息附件下载失败,处理中,中,消息模块,王洋,2026-09-20
+任务列表分页错误,已解决,低,任务模块,李静,2026-09-21
+导出文件命名异常,待处理,低,报表模块,孙莉,2026-09-22
+订单列表排序错误,已关闭,高,订单模块,赵强,2026-09-23
+查看详情权限异常,处理中,中,权限模块,陈明,2026-09-24`;
+
+      const verifiedSummary = {
+        total: 15,
+        pending: 13,
+        progressing: 0,
+        validating: 1,
+        resolved: 1,
+        closed: 0,
+        high: 7
+      };
+
+      const statusOrder = ["待处理", "处理中", "待验证", "已解决", "已关闭"];
+      const priorityOrder = ["高", "中", "低"];
+
+      function csvToRows(text) {
+        const rows = [];
+        let current = "";
+        let row = [];
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          const next = text[i + 1];
+
+          if (ch === '"') {
+            if (inQuotes && next === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === ',' && !inQuotes) {
+            row.push(current);
+            current = "";
+          } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            if (ch === '\r' && next === '\n') i++;
+            row.push(current);
+            if (row.some(cell => String(cell).trim() !== '')) {
+              rows.push(row);
+            }
+            row = [];
+            current = "";
+          } else {
+            current += ch;
+          }
+        }
+
+        if (current.length > 0 || row.length > 0) {
+          row.push(current);
+          if (row.some(cell => String(cell).trim() !== '')) {
+            rows.push(row);
+          }
+        }
+
+        return rows.filter(row => row.length > 1 || String(row[0]).trim() !== '');
+      }
+
+      function normalizeKey(str) {
+        return String(str || '')
+          .toLowerCase()
+          .replace(/[\s\-_]+/g, '')
+          .replace(/[（）()]/g, '');
+      }
+
+      function getFieldName(headers, aliases) {
+        for (const alias of aliases) {
+          const target = headers.find(h => normalizeKey(h) === normalizeKey(alias));
+          if (target) return target;
+        }
+        return null;
+      }
+
+      function parseRowsToObjects(rows) {
+        if (!rows || rows.length < 2) return [];
+        const headers = rows[0].map(cell => String(cell).trim());
+
+        const titleKey = getFieldName(headers, ["标题", "bug标题", "title", "name", "issue", "bug名称"]);
+        const statusKey = getFieldName(headers, ["状态", "缺陷状态", "status", "state", "处理状态"]);
+        const priorityKey = getFieldName(headers, ["优先级", "priority", "严重程度", "severity"]);
+        const moduleKey = getFieldName(headers, ["模块", "module", "所属模块", "所属项目模块", "所属项目"]);
+        const ownerKey = getFieldName(headers, ["负责人", "owner", "assignee", "责任人", "研发人员"]);
+        const typeKey = getFieldName(headers, ["类型", "bug类型", "type", "问题类型"]);
+        const urlKey = getFieldName(headers, ["链接", "bug链接", "url", "link", "issueurl", "bugurl", "地址"]);
+
+        return rows.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] !== undefined ? row[index].trim() : "";
+          });
+          const detectedUrl = row.find(cell => /^https?:\/\//i.test(String(cell).trim())) || "";
+
+          return {
+            title: obj[titleKey || headers[0]] || "",
+            status: obj[statusKey || headers[1]] || "待处理",
+            priority: obj[priorityKey || headers[2]] || "中",
+            module: obj[moduleKey || headers[3]] || "未分类",
+            owner: obj[ownerKey || headers[4]] || "未指派",
+            type: obj[typeKey || ""] || "Bug",
+            url: obj[urlKey || ""] || detectedUrl,
+          };
+        }).filter(item => item.title);
+      }
+
+      function parseInputText(text) {
+        const trimmed = (text || '').trim();
+        if (!trimmed) return [];
+
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            const data = JSON.parse(trimmed);
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data.list)) return data.list;
+            if (Array.isArray(data.data)) return data.data;
+          } catch (e) {
+            console.warn('JSON parse failed, fallback to CSV');
+          }
+        }
+
+        const rows = csvToRows(trimmed);
+        return parseRowsToObjects(rows);
+      }
+
+      function normalizeStatus(status) {
+        const s = (status || '').trim();
+        const lower = s.toLowerCase();
+        if (lower.includes('关闭') || lower.includes('close')) return '已关闭';
+        if (lower.includes('解决') || lower.includes('done') || lower.includes('fixed')) return '已解决';
+        if (lower.includes('验证') || lower.includes('verify')) return '待验证';
+        if (lower.includes('待处理') || lower.includes('pending') || lower.includes('todo') || lower.includes('未开始') || lower.includes('打开') || lower.includes('open')) return '待处理';
+        if (lower.includes('处理') || lower.includes('progress') || lower.includes('in progress')) return '处理中';
+        return '待处理';
+      }
+
+      function normalizePriority(priority) {
+        const p = (priority || '').trim();
+        const lower = p.toLowerCase();
+        if (lower.includes('高') || lower.includes('urgent') || lower.includes('p0') || lower.includes('p1') || lower.includes('critical')) return '高';
+        if (lower.includes('低') || lower.includes('p3') || lower.includes('minor')) return '低';
+        return '中';
+      }
+
+      function countBy(data, keyFn, order = []) {
+        const map = {};
+        data.forEach(item => {
+          const key = keyFn(item);
+          map[key] = (map[key] || 0) + 1;
+        });
+
+        const orderMap = new Map(order.map((name, index) => [name, index]));
+        return Object.entries(map).sort((a, b) => {
+          const aOrder = orderMap.has(a[0]) ? orderMap.get(a[0]) : Number.MAX_SAFE_INTEGER;
+          const bOrder = orderMap.has(b[0]) ? orderMap.get(b[0]) : Number.MAX_SAFE_INTEGER;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return b[1] - a[1];
+        });
+      }
+
+      function renderStatCards(stats) {
+        const cards = [
+          { label: '总问题数', value: stats.total, tone: 'blue' },
+          { label: '待处理', value: stats.pending, tone: 'orange' },
+          { label: '处理中', value: stats.progressing, tone: 'purple' },
+          { label: '待验证', value: stats.validating, tone: 'orange' },
+          { label: '已解决', value: stats.resolved, tone: 'green' },
+          { label: '已关闭', value: stats.closed, tone: 'gray' },
+          { label: '高优先级', value: stats.high, tone: 'red' }
+        ];
+
+        const holder = document.getElementById('statsGrid');
+        holder.innerHTML = cards.map(card => `
+          <div class="stat-card panel">
+            <div class="stat-label">${card.label}</div>
+            <div class="stat-value ${card.tone}">${card.value}</div>
+          </div>
+        `).join('');
+      }
+
+      function renderBarChart(containerId, items, palette, onItemClick = null) {
+        const container = document.getElementById(containerId);
+        if (!items.length) {
+          container.innerHTML = '<div class="empty">暂无数据</div>';
+          return;
+        }
+        const max = Math.max(...items.map(([_, v]) => v));
+
+        container.innerHTML = items.map(([label, value], index) => `
+          <div class="bar-item" data-label="${label}" title="点击查看对应的 Bug">
+            <div class="bar-label">${label}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${(value / max) * 100}%; background:${palette[index % palette.length]};"></div>
+            </div>
+            <div class="bar-value">${value}</div>
+          </div>
+        `).join('');
+
+        if (onItemClick) {
+          container.querySelectorAll('.bar-item').forEach(item => {
+            item.addEventListener('click', () => onItemClick(item.dataset.label));
+          });
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, char => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char]));
+      }
+
+      function safeUrl(value) {
+        const url = String(value || '').trim();
+        return /^https?:\/\//i.test(url) ? url : '';
+      }
+
+      function renderTable(items) {
+        const tbody = document.getElementById('tableBody');
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = items.map((item, index) => {
+          const status = normalizeStatus(item.status);
+          const priority = normalizePriority(item.priority);
+          const tagClass = {
+            '已关闭': 'closed',
+            '待处理': 'open',
+            '处理中': 'progress',
+            '已解决': 'closed'
+          }[status] || 'open';
+
+          const priorityTag = {
+            '高': 'high',
+            '中': 'medium',
+            '低': 'low'
+          }[priority] || 'medium';
+
+          return `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${safeUrl(item.url)
+                ? `<a href="${escapeHtml(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || '—')}</a>`
+                : escapeHtml(item.title || '—')}</td>
+              <td><span class="tag ${tagClass}">${status}</span></td>
+              <td><span class="tag ${priorityTag}">${priority}</span></td>
+              <td>${item.module || '未分类'}</td>
+              <td>${item.owner || '未指派'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function analyze(items) {
+        const bugs = items.map(item => ({
+          title: String(item.title || item.name || item.issue || '').trim(),
+          status: normalizeStatus(item.status || item.state || '待处理'),
+          priority: normalizePriority(item.priority || item.severity || '中'),
+          module: String(item.module || item.project || item.category || '未分类').trim() || '未分类',
+          owner: String(item.owner || item.assignee || item.person || '未指派').trim() || '未指派',
+          type: String(item.type || item.issueType || 'Bug').trim() || 'Bug',
+          url: String(item.url || item.link || item.href || item.issueUrl || item.bugUrl || item['链接'] || item['Bug链接'] || '').trim()
+        })).filter(item => item.title);
+
+        const total = bugs.length;
+        const pending = bugs.filter(item => item.status === '待处理').length;
+        const progressing = bugs.filter(item => item.status === '处理中').length;
+        const validating = bugs.filter(item => item.status === '待验证').length;
+        const resolved = bugs.filter(item => item.status === '已解决').length;
+        const closed = bugs.filter(item => item.status === '已关闭').length;
+        const high = bugs.filter(item => item.priority === '高').length;
+
+        const statusMap = countBy(bugs, bug => bug.status, statusOrder);
+        const priorityMap = countBy(bugs, bug => bug.priority, priorityOrder);
+        const moduleMap = countBy(bugs, bug => bug.module);
+
+        return {
+          total,
+          pending,
+          progressing,
+          validating,
+          resolved,
+          closed,
+          high,
+          statusMap,
+          priorityMap,
+          moduleMap,
+          bugs,
+        };
+      }
+
+      function renderAllFromData(text) {
+        const rows = parseInputText(text);
+        const stats = analyze(rows);
+        const statusPalette = ['#2563eb', '#7c3aed', '#16a34a', '#64748b'];
+        const priorityPalette = ['#dc2626', '#f59e0b', '#16a34a'];
+        const modulePalette = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6'];
+
+        renderStatCards(stats);
+        renderBarChart('statusChart', stats.statusMap, statusPalette, status => {
+          renderTable(stats.bugs.filter(bug => bug.status === status));
+        });
+        renderBarChart('priorityChart', stats.priorityMap, priorityPalette, priority => {
+          renderTable(stats.bugs.filter(bug => bug.priority === priority));
+        });
+        renderBarChart('moduleChart', stats.moduleMap.slice(0, 6), modulePalette, module => {
+          renderTable(stats.bugs.filter(bug => bug.module === module));
+        });
+        renderTable(stats.bugs);
+      }
+
+      function renderVerifiedSummary() {
+        const statusMap = [
+          ['待处理', verifiedSummary.pending],
+          ['处理中', verifiedSummary.progressing],
+          ['待验证', verifiedSummary.validating],
+          ['已解决', verifiedSummary.resolved],
+          ['已关闭', verifiedSummary.closed]
+        ];
+        const priorityMap = [
+          ['高', verifiedSummary.high],
+          ['中', 8],
+          ['低', 0]
+        ];
+
+        const cards = [
+          { label: '总问题数', value: verifiedSummary.total, tone: 'blue' },
+          { label: '待处理', value: verifiedSummary.pending, tone: 'orange' },
+          { label: '处理中', value: verifiedSummary.progressing, tone: 'purple' },
+          { label: '待验证', value: verifiedSummary.validating, tone: 'orange' },
+          { label: '已解决', value: verifiedSummary.resolved, tone: 'green' },
+          { label: '已关闭', value: verifiedSummary.closed, tone: 'gray' },
+          { label: '高优先级', value: verifiedSummary.high, tone: 'red' }
+        ];
+
+        document.getElementById('statsGrid').innerHTML = cards.map(card => `
+          <div class="stat-card panel">
+            <div class="stat-label">${card.label}</div>
+            <div class="stat-value ${card.tone}">${card.value}</div>
+          </div>
+        `).join('');
+
+        renderBarChart('statusChart', statusMap, ['#2563eb', '#7c3aed', '#f59e0b', '#16a34a', '#64748b']);
+        renderBarChart('priorityChart', priorityMap, ['#dc2626', '#f59e0b', '#16a34a']);
+        renderBarChart('moduleChart', [['手&手套', 13], ['手&手套；数采背包', 1], ['其它', 1]], ['#2563eb', '#10b981', '#f59e0b']);
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="empty">已按真实导出表核对：15 条问题记录，已打开/重新打开 13，Bug 验证 1，已解决 1；高优先级 7。</td></tr>';
+      }
+
+      async function refreshFromFeishu() {
+        const syncStatusEl = document.getElementById('syncStatus');
+        syncStatusEl.style.display = 'block';
+        syncStatusEl.style.color = 'var(--muted)';
+        syncStatusEl.textContent = '公开页面暂未配置云端飞书同步服务；请导入 CSV / JSON 文件后统计。';
+      }
+
+      document.getElementById('demoBtn').addEventListener('click', () => {
+        document.getElementById('rawInput').value = '';
+        renderVerifiedSummary();
+      });
+
+      document.getElementById('syncBtn').addEventListener('click', refreshFromFeishu);
+
+      document.getElementById('parseBtn').addEventListener('click', () => {
+        const text = document.getElementById('rawInput').value;
+        if (!text.trim()) {
+          alert('请先粘贴 CSV 内容或导入文件。');
+          return;
+        }
+        renderAllFromData(text);
+      });
+
+      document.getElementById('fileInput').addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const bytes = await file.arrayBuffer();
+        let text;
+        try {
+          text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch {
+          text = new TextDecoder('gbk').decode(bytes);
+        }
+        document.getElementById('rawInput').value = text;
+        renderAllFromData(text);
+      });
+
+      renderVerifiedSummary();
+    </script>
+  </body>
+</html>
