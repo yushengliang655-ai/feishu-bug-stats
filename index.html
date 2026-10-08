@@ -273,6 +273,44 @@
         text-decoration: underline;
       }
 
+      .bug-link {
+        display: inline-block;
+        margin-top: 4px;
+        color: var(--blue);
+        font-size: 12px;
+        text-decoration: none;
+      }
+
+      .bug-link:hover {
+        text-decoration: underline;
+      }
+
+      .bug-links-panel {
+        margin-top: 18px;
+      }
+
+      .bug-links-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .bug-link-item {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .bug-link-meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
       .empty {
         padding: 24px;
         text-align: center;
@@ -594,6 +632,11 @@
           <tbody id="tableBody"></tbody>
         </table>
       </div>
+
+      <section class="panel bug-links-panel" id="bugLinksPanel">
+        <h2 class="trend-title">Bug 详情链接</h2>
+        <div id="bugLinksList" class="bug-links-list"></div>
+      </section>
     </div>
 
     <script>
@@ -623,6 +666,12 @@
         closed: 0,
         high: 7
       };
+
+      const knownBugLinks = [{
+        id: '7128705016',
+        title: 'Bug 7128705016',
+        url: 'https://project.feishu.cn/i9lz5k/issue/detail/7128705016'
+      }];
 
       const statusOrder = ["待处理", "处理中", "待验证", "已解决", "已关闭"];
       const priorityOrder = ["高", "中", "低"];
@@ -822,6 +871,7 @@
           return matchesStatus && matchesKeyword;
         });
         renderTable(filtered);
+        renderBugLinks(filtered);
       }
 
       function renderTrendChart(items) {
@@ -933,6 +983,30 @@
         return /^https?:\/\//i.test(url) ? url : '';
       }
 
+      function feishuIssueUrl(id) {
+        const issueId = String(id || '').trim();
+        return /^\d+$/.test(issueId)
+          ? `https://project.feishu.cn/i9lz5k/issue/detail/${encodeURIComponent(issueId)}`
+          : '';
+      }
+
+      function renderBugLinks(items) {
+        const holder = document.getElementById('bugLinksList');
+        if (!items.length) {
+          holder.innerHTML = '<div class="empty">该分类下暂无 Bug 链接</div>';
+          return;
+        }
+
+        const linkedItems = items.filter(item => safeUrl(item.url));
+        const missingCount = items.length - linkedItems.length;
+        holder.innerHTML = `${linkedItems.map(item => `
+          <div class="bug-link-item">
+            <a class="bug-link" href="${escapeHtml(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || `Bug ${item.id || ''}`)}</a>
+            <span class="bug-link-meta">${[item.id, item.status, item.priority, item.module].filter(Boolean).map(escapeHtml).join(' · ')}</span>
+          </div>
+        `).join('')}${missingCount ? `<div class="bug-link-meta">另有 ${missingCount} 条记录没有可用的 Bug 链接。</div>` : ''}`;
+      }
+
       function renderTable(items) {
         const tbody = document.getElementById('tableBody');
         if (!items.length) {
@@ -960,7 +1034,7 @@
             <tr>
               <td>${index + 1}</td>
               <td>${safeUrl(item.url)
-                ? `<a href="${escapeHtml(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || '—')}</a>`
+                ? `<a href="${escapeHtml(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || '—')}</a><br><a class="bug-link" href="${escapeHtml(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">打开 Bug ↗</a>`
                 : escapeHtml(item.title || '—')}</td>
               <td><span class="tag ${tagClass}">${status}</span></td>
               <td><span class="tag ${priorityTag}">${priority}</span></td>
@@ -974,18 +1048,22 @@
       }
 
       function analyze(items) {
-        const bugs = items.map(item => ({
-          id: String(item.id || item.issueId || item['ID'] || '').trim(),
-          title: String(item.title || item.name || item.issue || '').trim(),
-          status: normalizeStatus(item.status || item.state || '待处理'),
-          priority: normalizePriority(item.priority || item.severity || '中'),
-          module: String(item.module || item.project || item.category || '未分类').trim() || '未分类',
-          projectUrl: String(item.projectUrl || item.projectLink || item.projectURL || item.moduleUrl || item['项目链接'] || item['所属项目链接'] || item['项目地址'] || '').trim(),
-          owner: String(item.owner || item.assignee || item.person || '未指派').trim() || '未指派',
-          type: String(item.type || item.issueType || 'Bug').trim() || 'Bug',
-          url: String(item.url || item.link || item.href || item.issueUrl || item.bugUrl || item['链接'] || item['Bug链接'] || '').trim(),
-          createdAt: String(item.createdAt || item.created_at || item.createTime || item['创建时间'] || item['创建日期'] || '').trim()
-        })).filter(item => item.title);
+        const bugs = items.map(item => {
+          const id = String(item.id || item.issueId || item['ID'] || item['编号'] || item['问题ID'] || item['Bug ID'] || '').trim();
+          const url = String(item.url || item.link || item.href || item.issueUrl || item.bugUrl || item['链接'] || item['Bug链接'] || item['问题链接'] || '').trim();
+          return {
+            id,
+            title: String(item.title || item.name || item.issue || '').trim(),
+            status: normalizeStatus(item.status || item.state || '待处理'),
+            priority: normalizePriority(item.priority || item.severity || '中'),
+            module: String(item.module || item.project || item.category || '未分类').trim() || '未分类',
+            projectUrl: String(item.projectUrl || item.projectLink || item.projectURL || item.moduleUrl || item['项目链接'] || item['所属项目链接'] || item['项目地址'] || '').trim(),
+            owner: String(item.owner || item.assignee || item.person || '未指派').trim() || '未指派',
+            type: String(item.type || item.issueType || 'Bug').trim() || 'Bug',
+            url: url || feishuIssueUrl(id),
+            createdAt: String(item.createdAt || item.created_at || item.createTime || item['创建时间'] || item['创建日期'] || '').trim()
+          };
+        }).filter(item => item.title);
 
         const total = bugs.length;
         const pending = bugs.filter(item => item.status === '待处理').length;
@@ -1027,21 +1105,22 @@
         renderStatusFilters(stats.statusMap);
         renderTrendChart(stats.bugs);
         renderBarChart('statusChart', stats.statusMap, statusPalette, status => {
-          renderTable(stats.bugs.filter(bug => bug.status === status));
+          const matches = stats.bugs.filter(bug => bug.status === status);
+          renderTable(matches);
+          renderBugLinks(matches);
+          document.getElementById('bugLinksPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         renderBarChart('priorityChart', stats.priorityMap, priorityPalette, priority => {
-          renderTable(stats.bugs.filter(bug => bug.priority === priority));
+          const matches = stats.bugs.filter(bug => bug.priority === priority);
+          renderTable(matches);
+          renderBugLinks(matches);
+          document.getElementById('bugLinksPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         renderBarChart('moduleChart', stats.moduleMap.slice(0, 6), modulePalette, module => {
-          const projectUrls = [...new Set(stats.bugs
-            .filter(bug => bug.module === module)
-            .map(bug => safeUrl(bug.projectUrl))
-            .filter(Boolean))];
-          if (projectUrls.length === 1) {
-            window.open(projectUrls[0], '_blank', 'noopener,noreferrer');
-            return;
-          }
-          renderTable(stats.bugs.filter(bug => bug.module === module));
+          const matches = stats.bugs.filter(bug => bug.module === module);
+          renderTable(matches);
+          renderBugLinks(matches);
+          document.getElementById('bugLinksPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
         renderFilteredTable();
       }
@@ -1077,6 +1156,7 @@
         renderBarChart('moduleChart', [['手&手套', 13], ['手&手套；数采背包', 1], ['其它', 1]], ['#2563eb', '#10b981', '#f59e0b']);
         currentBugs = null;
         document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="empty">已按真实导出表核对：15 条问题记录，已打开/重新打开 13，Bug 验证 1，已解决 1；高优先级 7。</td></tr>';
+        renderBugLinks(knownBugLinks);
       }
 
       async function refreshFromFeishu() {
