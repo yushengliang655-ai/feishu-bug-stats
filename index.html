@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>飞书项目 Bug 统计</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --panel-alt: #f8fafc;
+        --line: #e5e7eb;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --blue: #2563eb;
+        --green: #16a34a;
+        --orange: #f59e0b;
+        --red: #dc2626;
+        --purple: #7c3aed;
+        --gray: #64748b;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 18px;
+        margin-bottom: 22px;
+      }
+
+      .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: 0.2s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        border-color: var(--blue);
+      }
+
+      .btn.primary {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+      }
+
+      .upload {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--panel-alt);
+        border: 1px dashed #cbd5e1;
+        padding: 10px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .upload input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+        font-size: 14px;
+        color: var(--text);
+        background: #fbfdff;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+
+      .stat-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 18px 16px;
+      }
+
+      .stat-label {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .stat-value.blue { color: var(--blue); }
+      .stat-value.green { color: var(--green); }
+      .stat-value.orange { color: var(--orange); }
+      .stat-value.red { color: var(--red); }
+      .stat-value.gray { color: var(--gray); }
+      .stat-value.purple { color: var(--purple); }
+
+      .charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .chart-panel {
+        padding: 18px;
+      }
+
+      .chart-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .bar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .bar-item {
+        display: grid;
+        grid-template-columns: 70px 1fr 50px;
+        gap: 8px;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .bar-item:hover .bar-label,
+      .bar-item:hover .bar-value {
+        color: var(--blue);
+      }
+
+      .bar-label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .bar-track {
+        height: 10px;
+        background: #eef2f7;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+
+      .bar-value {
+        text-align: right;
+        font-size: 13px;
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .table-wrap {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      th, td {
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        padding: 10px 12px;
+        font-size: 13px;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+      }
+
+      tr:hover td {
+        background: #f8fbff;
+      }
+
+      .tag {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .tag.closed { background: #e5e7eb; color: #374151; }
+      .tag.open { background: #dbeafe; color: #1d4ed8; }
+      .tag.progress { background: #fef3c7; color: #b45309; }
+      .tag.high { background: #fee2e2; color: #b91c1c; }
+      .tag.medium { background: #fef3c7; color: #b45309; }
+      .tag.low { background: #dcfce7; color: #15803d; }
+
+      .empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+      }
+
+      body {
+        background: #f3f5f8;
+      }
+
+      .container {
+        max-width: 1360px;
+        padding: 24px 28px 40px;
+      }
+
+      .header {
+        margin-bottom: 18px;
+      }
+
+      .header-copy {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .header-meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .btn.refresh {
+        padding: 9px 14px;
+        border-radius: 9px;
+        background: #fff;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        box-shadow: none;
+        border-radius: 12px;
+      }
+
+      .filter-controls,
+      .toolbar-actions,
+      .status-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .filter-label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .filter-select,
+      .search-input {
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        color: var(--text);
+        padding: 0 10px;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .search-input {
+        width: 220px;
+      }
+
+      .status-filters {
+        gap: 7px;
+      }
+
+      .status-filter {
+        border: 0;
+        border-radius: 999px;
+        padding: 7px 12px;
+        color: white;
+        font-size: 12px;
+        cursor: pointer;
+        opacity: .82;
+      }
+
+      .status-filter.active,
+      .status-filter:hover {
+        opacity: 1;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, .16);
+      }
+
+      .status-filter[data-status="待处理"] { background: #4780ee; }
+      .status-filter[data-status="已解决"] { background: #4fbd70; }
+      .status-filter[data-status="已关闭"] { background: #e45c51; }
+      .status-filter[data-status="待验证"] { background: #f0a52e; }
+      .status-filter[data-status="处理中"] { background: #8b69d6; }
+      .status-filter[data-status="全部"] { background: #64748b; }
+
+      .stats-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .stat-card {
+        min-height: 100px;
+        border-radius: 13px;
+        padding: 16px 18px;
+        box-shadow: none;
+      }
+
+      .stat-label {
+        margin-bottom: 5px;
+      }
+
+      .stat-value {
+        font-size: 34px;
+      }
+
+      .trend-panel {
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        box-shadow: none;
+      }
+
+      .trend-title {
+        margin: 0 0 14px;
+        font-size: 15px;
+      }
+
+      .trend-plot {
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        border-bottom: 1px solid #e8edf4;
+        background: repeating-linear-gradient(to bottom, transparent 0, transparent 54px, #edf1f6 55px, transparent 56px);
+        font-size: 13px;
+      }
+
+      .trend-plot.has-chart {
+        display: block;
+        min-height: auto;
+        padding: 8px 0 0;
+        border: 0;
+        background: none;
+      }
+
+      .trend-plot svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .trend-legend {
+        display: flex;
+        gap: 20px;
+        padding: 8px 0 0 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .trend-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .trend-legend i {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+      }
+
+      .legend-open { background: #4780ee; }
+      .legend-closed { background: #4fbd70; }
+
+      .import-details {
+        margin-bottom: 16px;
+        padding: 12px 16px;
+      }
+
+      .import-details summary {
+        cursor: pointer;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .import-details .toolbar-row {
+        margin-top: 12px;
+      }
+
+      .import-details textarea {
+        min-height: 120px;
+        margin-top: 12px;
+      }
+
+      .charts {
+        margin-bottom: 16px;
+      }
+
+      .chart-panel {
+        box-shadow: none;
+        border-radius: 13px;
+      }
+
+      .table-wrap {
+        box-shadow: none;
+        border-radius: 13px;
+      }
+
+      @media (max-width: 720px) {
+        .container { padding: 16px; }
+        .header { align-items: flex-start; }
+        .header-copy { display: block; }
+        .header-meta { display: block; margin-top: 5px; }
+        .toolbar { align-items: stretch; flex-direction: column; }
+        .filter-controls { align-items: stretch; }
+        .search-input { width: 100%; }
+        .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .toolbar-row { flex-direction: column; align-items: stretch; }
+        .btn, .upload { width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-copy">
+          <h1>飞书项目 · Bug 状态看板</h1>
+          <span class="header-meta">项目缺陷统计与状态追踪</span>
+        </div>
+        <button id="syncBtn" class="btn refresh">↻ 刷新数据</button>
+      </div>
+
+      <div class="panel toolbar">
+        <div class="filter-controls">
+          <span class="filter-label">统计范围</span>
+          <select id="rangeSelect" class="filter-select" aria-label="统计范围">
+            <option value="4">近 4 周</option>
+            <option value="8">近 8 周</option>
+            <option value="12">近 12 周</option>
+            <option value="all">全部时间</option>
+          </select>
+          <span class="filter-label">关键词</span>
+          <input id="keywordInput" class="search-input" type="search" placeholder="标题 / ID 搜索" />
+        </div>
+        <div id="statusFilters" class="status-filters"></div>
+      </div>
+
+      <div id="statsGrid" class="stats-grid"></div>
+
+      <div class="panel trend-panel">
+        <h2 class="trend-title">周趋势 · 开启 / 关闭</h2>
+        <div id="trendPlot" class="trend-plot">导入包含创建时间的 CSV 后显示趋势</div>
+      </div>
+
+      <div id="syncStatus" class="empty" style="padding: 8px 0 16px; display: none; color: var(--muted);"></div>
+
+      <details class="panel import-details">
+        <summary>导入 CSV / JSON 数据</summary>
+        <div class="toolbar-row">
+          <label class="upload">
+            选择文件
+            <input id="fileInput" type="file" accept=".csv,.json,.txt" />
+          </label>
+          <button id="demoBtn" class="btn">恢复导出概览</button>
+          <button id="parseBtn" class="btn primary">开始统计</button>
+        </div>
+        <textarea id="rawInput" placeholder="粘贴飞书导出的 CSV / JSON 内容，或使用上方按钮导入文件。"></textarea>
+      </details>
+
+      <div class="charts">
+        <div class="panel chart-panel">
+          <div class="chart-title">按状态</div>
+          <div id="statusChart" class="bar-list"></div>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-title">按优先级</div>
+          <div id="priorityChart" class="bar-list"></div>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-title">按所属项目</div>
+          <div id="moduleChart" class="bar-list"></div>
+        </div>
+      </div>
+
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>标题 / Bug链接</th>
+              <th>状态</th>
+              <th>优先级</th>
+              <th>所属项目</th>
+              <th>研发人员</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const demoData = `标题,状态,优先级,模块,负责人,创建时间
+登录失败后页面白屏,处理中,高,登录模块,王洋,2026-09-10
+创建订单接口返回500,待处理,高,订单模块,李静,2026-09-11
+支付成功但状态未更新,已关闭,中,支付模块,赵强,2026-09-12
+消息通知重复发送,待处理,中,消息模块,刘晨,2026-09-13
+导出报表字段丢失,已解决,低,报表模块,孙莉,2026-09-14
+用户信息编辑后异常,处理中,高,用户中心,周杰,2026-09-15
+审批流超时跳转错误,待处理,高,审批模块,何凯,2026-09-16
+批量导入重复记录,已解决,中,数据导入,田野,2026-09-17
+权限校验漏判,已关闭,高,权限模块,陈明,2026-09-18
+报表筛选无效,待处理,中,报表模块,何凯,2026-09-19
+消息附件下载失败,处理中,中,消息模块,王洋,2026-09-20
+任务列表分页错误,已解决,低,任务模块,李静,2026-09-21
+导出文件命名异常,待处理,低,报表模块,孙莉,2026-09-22
+订单列表排序错误,已关闭,高,订单模块,赵强,2026-09-23
+查看详情权限异常,处理中,中,权限模块,陈明,2026-09-24`;
+
+      const verifiedSummary = {
+        total: 15,
+        pending: 13,
+        progressing: 0,
+        validating: 1,
+        resolved: 1,
+        closed: 0,
+        high: 7
+      };
+
+      const statusOrder = ["待处理", "处理中", "待验证", "已解决", "已关闭"];
+      const priorityOrder = ["高", "中", "低"];
+      let currentBugs = null;
+      let selectedStatus = "全部";
+
+      function csvToRows(text) {
+        const rows = [];
+        let current = "";
+        let row = [];
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          const next = text[i + 1];
+
+          if (ch === '"') {
+            if (inQuotes && next === '"') {
+              current += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === ',' && !inQuotes) {
+            row.push(current);
+            current = "";
+          } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            if (ch === '\r' && next === '\n') i++;
+            row.push(current);
+            if (row.some(cell => String(cell).trim() !== '')) {
+              rows.push(row);
+            }
+            row = [];
+            current = "";
+          } else {
+            current += ch;
+          }
+        }
+
+        if (current.length > 0 || row.length > 0) {
+          row.push(current);
+          if (row.some(cell => String(cell).trim() !== '')) {
+            rows.push(row);
+          }
+        }
+
+        return rows.filter(row => row.length > 1 || String(row[0]).trim() !== '');
+      }
+
+      function normalizeKey(str) {
+        return String(str || '')
+          .toLowerCase()
+          .replace(/[\s\-_]+/g, '')
+          .replace(/[（）()]/g, '');
+      }
+
+      function getFieldName(headers, aliases) {
+        for (const alias of aliases) {
+          const target = headers.find(h => normalizeKey(h) === normalizeKey(alias));
+          if (target) return target;
+        }
+        return null;
+      }
+
+      function parseRowsToObjects(rows) {
+        if (!rows || rows.length < 2) return [];
+        const headers = rows[0].map(cell => String(cell).trim());
+
+        const titleKey = getFieldName(headers, ["标题", "bug标题", "title", "name", "issue", "bug名称"]);
+        const statusKey = getFieldName(headers, ["状态", "缺陷状态", "status", "state", "处理状态"]);
+        const priorityKey = getFieldName(headers, ["优先级", "priority", "严重程度", "severity"]);
+        const moduleKey = getFieldName(headers, ["模块", "module", "所属模块", "所属项目模块", "所属项目"]);
+        const ownerKey = getFieldName(headers, ["负责人", "owner", "assignee", "责任人", "研发人员"]);
+        const typeKey = getFieldName(headers, ["类型", "bug类型", "type", "问题类型"]);
+        const urlKey = getFieldName(headers, ["链接", "bug链接", "url", "link", "issueurl", "bugurl", "地址"]);
+        const createdKey = getFieldName(headers, ["创建时间", "创建日期", "createdat", "createdtime", "created", "日期"]);
+
+        return rows.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] !== undefined ? row[index].trim() : "";
+          });
+          const detectedUrl = row.find(cell => /^https?:\/\//i.test(String(cell).trim())) || "";
+
+          return {
+            title: obj[titleKey || headers[0]] || "",
+            status: obj[statusKey || headers[1]] || "待处理",
+            priority: obj[priorityKey || headers[2]] || "中",
+            module: obj[moduleKey || headers[3]] || "未分类",
+            owner: obj[ownerKey || headers[4]] || "未指派",
+            type: obj[typeKey || ""] || "Bug",
+            url: obj[urlKey || ""] || detectedUrl,
+            createdAt: obj[createdKey || ""] || "",
+          };
+        }).filter(item => item.title);
+      }
+
+      function parseInputText(text) {
+        const trimmed = (text || '').trim();
+        if (!trimmed) return [];
+
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            const data = JSON.parse(trimmed);
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data.list)) return data.list;
+            if (Array.isArray(data.data)) return data.data;
+          } catch (e) {
+            console.warn('JSON parse failed, fallback to CSV');
+          }
+        }
+
+        const rows = csvToRows(trimmed);
+        return parseRowsToObjects(rows);
+      }
+
+      function normalizeStatus(status) {
+        const s = (status || '').trim();
+        const lower = s.toLowerCase();
+        if (lower.includes('关闭') || lower.includes('close')) return '已关闭';
+        if (lower.includes('解决') || lower.includes('done') || lower.includes('fixed')) return '已解决';
+        if (lower.includes('验证') || lower.includes('verify')) return '待验证';
+        if (lower.includes('待处理') || lower.includes('pending') || lower.includes('todo') || lower.includes('未开始') || lower.includes('打开') || lower.includes('open')) return '待处理';
+        if (lower.includes('处理') || lower.includes('progress') || lower.includes('in progress')) return '处理中';
+        return '待处理';
+      }
+
+      function normalizePriority(priority) {
+        const p = (priority || '').trim();
+        const lower = p.toLowerCase();
+        if (lower.includes('高') || lower.includes('urgent') || lower.includes('p0') || lower.includes('p1') || lower.includes('critical')) return '高';
+        if (lower.includes('低') || lower.includes('p3') || lower.includes('minor')) return '低';
+        return '中';
+      }
+
+      function countBy(data, keyFn, order = []) {
+        const map = {};
+        data.forEach(item => {
+          const key = keyFn(item);
+          map[key] = (map[key] || 0) + 1;
+        });
+
+        const orderMap = new Map(order.map((name, index) => [name, index]));
+        return Object.entries(map).sort((a, b) => {
+          const aOrder = orderMap.has(a[0]) ? orderMap.get(a[0]) : Number.MAX_SAFE_INTEGER;
+          const bOrder = orderMap.has(b[0]) ? orderMap.get(b[0]) : Number.MAX_SAFE_INTEGER;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return b[1] - a[1];
+        });
+      }
+
+      function renderStatCards(stats) {
+        const cards = [
+          { label: '范围内开启', value: stats.pending + stats.progressing + stats.validating, tone: 'blue' },
+          { label: '范围内关闭', value: stats.closed + stats.resolved, tone: 'green' },
+          { label: '当前未解决', value: stats.pending + stats.progressing + stats.validating, tone: 'orange' },
+          { label: '全部 Bug', value: stats.total, tone: 'gray' }
+        ];
+
+        const holder = document.getElementById('statsGrid');
+        holder.innerHTML = cards.map(card => `
+          <div class="stat-card panel">
+            <div class="stat-label">${card.label}</div>
+            <div class="stat-value ${card.tone}">${card.value}</div>
+          </div>
+        `).join('');
+      }
+
+      function renderStatusFilters(statusCounts) {
+        const holder = document.getElementById('statusFilters');
+        const filters = [['全部', statusCounts.reduce((sum, [, count]) => sum + count, 0)], ...statusCounts];
+        holder.innerHTML = filters.map(([status, count]) => `
+          <button class="status-filter ${selectedStatus === status ? 'active' : ''}" data-status="${escapeHtml(status)}">
+            ${escapeHtml(status)} ${count}
+          </button>
+        `).join('');
+        holder.querySelectorAll('.status-filter').forEach(button => {
+          button.addEventListener('click', () => {
+            selectedStatus = button.dataset.status;
+            renderStatusFilters(statusCounts);
+            renderFilteredTable();
+          });
+        });
+      }
+
+      function renderFilteredTable() {
+        if (!Array.isArray(currentBugs)) return;
+        const keyword = document.getElementById('keywordInput').value.trim().toLowerCase();
+        const filtered = currentBugs.filter(bug => {
+          const matchesStatus = selectedStatus === '全部' || bug.status === selectedStatus;
+          const matchesKeyword = !keyword || `${bug.title} ${bug.id || ''}`.toLowerCase().includes(keyword);
+          return matchesStatus && matchesKeyword;
+        });
+        renderTable(filtered);
+      }
+
+      function renderTrendChart(items) {
+        const plot = document.getElementById('trendPlot');
+        if (!Array.isArray(items)) items = [];
+        const datedItems = items.map(item => ({ ...item, date: new Date(item.createdAt) }))
+          .filter(item => item.createdAt && !Number.isNaN(item.date.getTime()));
+
+        if (!datedItems.length) {
+          plot.classList.remove('has-chart');
+          plot.textContent = '导入包含创建时间的 CSV / JSON 后显示趋势';
+          return;
+        }
+
+        const byWeek = new Map();
+        datedItems.forEach(item => {
+          const week = new Date(item.date);
+          week.setHours(0, 0, 0, 0);
+          week.setDate(week.getDate() - ((week.getDay() + 6) % 7));
+          const key = week.toISOString().slice(0, 10);
+          const bucket = byWeek.get(key) || { open: 0, closed: 0 };
+          if (item.status === '已关闭' || item.status === '已解决') bucket.closed++;
+          else bucket.open++;
+          byWeek.set(key, bucket);
+        });
+
+        let weeks = [...byWeek.entries()].sort(([a], [b]) => a.localeCompare(b));
+        const range = document.getElementById('rangeSelect').value;
+        if (range !== 'all') weeks = weeks.slice(-Number(range));
+        const width = 900;
+        const height = 190;
+        const max = Math.max(1, ...weeks.map(([, v]) => Math.max(v.open, v.closed)));
+        const x = index => 40 + index * ((width - 80) / Math.max(weeks.length - 1, 1));
+        const y = value => height - 28 - (value / max) * (height - 55);
+        const openPoints = weeks.map(([, v], i) => `${x(i)},${y(v.open)}`).join(' ');
+        const closedPoints = weeks.map(([, v], i) => `${x(i)},${y(v.closed)}`).join(' ');
+        const labels = weeks.map(([date, ], i) => `
+          <text x="${x(i)}" y="${height - 5}" text-anchor="middle" fill="#778399" font-size="11">${date.slice(5).replace('-', '/')}</text>
+        `).join('');
+        const grid = [0, 1, 2, 3].map(step => {
+          const value = Math.round(max * step / 3);
+          const yy = y(value);
+          return `<line x1="40" y1="${yy}" x2="${width - 20}" y2="${yy}" stroke="#e8edf4"/><text x="24" y="${yy + 4}" text-anchor="end" fill="#778399" font-size="11">${value}</text>`;
+        }).join('');
+        plot.classList.add('has-chart');
+        plot.innerHTML = `
+          <div class="trend-chart">
+            <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="每周新增开启和关闭 Bug 趋势">
+              ${grid}
+              <polyline points="${openPoints}" fill="none" stroke="#4780ee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="${closedPoints}" fill="none" stroke="#4fbd70" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              ${labels}
+            </svg>
+            <div class="trend-legend"><span><i class="legend-open"></i>开启</span><span><i class="legend-closed"></i>关闭</span></div>
+          </div>
+        `;
+      }
+
+      function renderBarChart(containerId, items, palette, onItemClick = null) {
+        const container = document.getElementById(containerId);
+        if (!items.length) {
+          container.innerHTML = '<div class="empty">暂无数据</div>';
+          return;
+        }
+        const max = Math.max(...items.map(([_, v]) => v));
+
+        container.innerHTML = items.map(([label, value], index) => `
+          <div class="bar-item" data-label="${label}" title="点击查看对应的 Bug">
+            <div class="bar-label">${label}</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${(value / max) * 100}%; background:${palette[index % palette.length]};"></div>
+            </div>
+            <div class="bar-value">${value}</div>
+          </div>
+        `).join('');
+
+        if (onItemClick) {
+          container.querySelectorAll('.bar-item').forEach(item => {
+            item.addEventListener('click', () => onItemClick(item.dataset.label));
+          });
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, char => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char]));
+      }
+
+      function safeUrl(value) {
+        const url = String(value || '').trim();
+        return /^https?:\/\//i.test(url) ? url : '';
+      }
+
+      function renderTable(items) {
+        const tbody = document.getElementById('tableBody');
+        if (!items.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = items.map((item, index) => {
+          const status = normalizeStatus(item.status);
+          const priority = normalizePriority(item.priority);
+          const tagClass = {
+            '已关闭': 'closed',
+            '待处理': 'open',
+            '处理中': 'progress',
+            '已解决': 'closed'
+          }[status] || 'open';
+
+          const priorityTag = {
+            '高': 'high',
+            '中': 'medium',
+            '低': 'low'
+          }[priority] || 'medium';
+
+          return `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${safeUrl(item.url)
+                ? `<a href="${escapeHtml(safeUrl(item.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || '—')}</a>`
+                : escapeHtml(item.title || '—')}</td>
+              <td><span class="tag ${tagClass}">${status}</span></td>
+              <td><span class="tag ${priorityTag}">${priority}</span></td>
+              <td>${item.module || '未分类'}</td>
+              <td>${item.owner || '未指派'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function analyze(items) {
+        const bugs = items.map(item => ({
+          id: String(item.id || item.issueId || item['ID'] || '').trim(),
+          title: String(item.title || item.name || item.issue || '').trim(),
+          status: normalizeStatus(item.status || item.state || '待处理'),
+          priority: normalizePriority(item.priority || item.severity || '中'),
+          module: String(item.module || item.project || item.category || '未分类').trim() || '未分类',
+          owner: String(item.owner || item.assignee || item.person || '未指派').trim() || '未指派',
+          type: String(item.type || item.issueType || 'Bug').trim() || 'Bug',
+          url: String(item.url || item.link || item.href || item.issueUrl || item.bugUrl || item['链接'] || item['Bug链接'] || '').trim(),
+          createdAt: String(item.createdAt || item.created_at || item.createTime || item['创建时间'] || item['创建日期'] || '').trim()
+        })).filter(item => item.title);
+
+        const total = bugs.length;
+        const pending = bugs.filter(item => item.status === '待处理').length;
+        const progressing = bugs.filter(item => item.status === '处理中').length;
+        const validating = bugs.filter(item => item.status === '待验证').length;
+        const resolved = bugs.filter(item => item.status === '已解决').length;
+        const closed = bugs.filter(item => item.status === '已关闭').length;
+        const high = bugs.filter(item => item.priority === '高').length;
+
+        const statusMap = countBy(bugs, bug => bug.status, statusOrder);
+        const priorityMap = countBy(bugs, bug => bug.priority, priorityOrder);
+        const moduleMap = countBy(bugs, bug => bug.module);
+
+        return {
+          total,
+          pending,
+          progressing,
+          validating,
+          resolved,
+          closed,
+          high,
+          statusMap,
+          priorityMap,
+          moduleMap,
+          bugs,
+        };
+      }
+
+      function renderAllFromData(text) {
+        const rows = parseInputText(text);
+        const stats = analyze(rows);
+        currentBugs = stats.bugs;
+        selectedStatus = '全部';
+        const statusPalette = ['#2563eb', '#7c3aed', '#16a34a', '#64748b'];
+        const priorityPalette = ['#dc2626', '#f59e0b', '#16a34a'];
+        const modulePalette = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6'];
+
+        renderStatCards(stats);
+        renderStatusFilters(stats.statusMap);
+        renderTrendChart(stats.bugs);
+        renderBarChart('statusChart', stats.statusMap, statusPalette, status => {
+          renderTable(stats.bugs.filter(bug => bug.status === status));
+        });
+        renderBarChart('priorityChart', stats.priorityMap, priorityPalette, priority => {
+          renderTable(stats.bugs.filter(bug => bug.priority === priority));
+        });
+        renderBarChart('moduleChart', stats.moduleMap.slice(0, 6), modulePalette, module => {
+          renderTable(stats.bugs.filter(bug => bug.module === module));
+        });
+        renderFilteredTable();
+      }
+
+      function renderVerifiedSummary() {
+        selectedStatus = '全部';
+        const statusMap = [
+          ['待处理', verifiedSummary.pending],
+          ['处理中', verifiedSummary.progressing],
+          ['待验证', verifiedSummary.validating],
+          ['已解决', verifiedSummary.resolved],
+          ['已关闭', verifiedSummary.closed]
+        ];
+        const priorityMap = [
+          ['高', verifiedSummary.high],
+          ['中', 8],
+          ['低', 0]
+        ];
+
+        renderStatCards({
+          total: verifiedSummary.total,
+          pending: verifiedSummary.pending,
+          progressing: verifiedSummary.progressing,
+          validating: verifiedSummary.validating,
+          resolved: verifiedSummary.resolved,
+          closed: verifiedSummary.closed
+        });
+
+        renderStatusFilters(statusMap);
+        renderTrendChart([]);
+        renderBarChart('statusChart', statusMap, ['#2563eb', '#7c3aed', '#f59e0b', '#16a34a', '#64748b']);
+        renderBarChart('priorityChart', priorityMap, ['#dc2626', '#f59e0b', '#16a34a']);
+        renderBarChart('moduleChart', [['手&手套', 13], ['手&手套；数采背包', 1], ['其它', 1]], ['#2563eb', '#10b981', '#f59e0b']);
+        currentBugs = null;
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" class="empty">已按真实导出表核对：15 条问题记录，已打开/重新打开 13，Bug 验证 1，已解决 1；高优先级 7。</td></tr>';
+      }
+
+      async function refreshFromFeishu() {
+        const syncStatusEl = document.getElementById('syncStatus');
+        syncStatusEl.style.display = 'block';
+        syncStatusEl.style.color = 'var(--muted)';
+
+        if (location.hostname.endsWith('github.io')) {
+          syncStatusEl.textContent = '公开页面暂未配置云端飞书同步服务；本机运行时可点击此按钮同步。';
+          return;
+        }
+
+        syncStatusEl.textContent = '正在同步飞书最新信息...';
+        try {
+          const response = await fetch('http://localhost:8000/api/refresh', { method: 'POST' });
+          const result = await response.json();
+
+          if (!response.ok || result.ok === false) {
+            throw new Error(result.error || '同步失败');
+          }
+
+          syncStatusEl.style.color = 'var(--green)';
+          syncStatusEl.textContent = `同步成功：${result.data?.saved_to || '已保存最新数据'}。`;
+          console.log('Feishu sync result:', result);
+        } catch (error) {
+          syncStatusEl.style.color = 'var(--red)';
+          syncStatusEl.textContent = `同步失败：${error.message || error}`;
+          console.error('Feishu refresh sync failed:', error);
+        }
+      }
+
+      document.getElementById('demoBtn').addEventListener('click', () => {
+        document.getElementById('rawInput').value = '';
+        renderVerifiedSummary();
+      });
+
+      document.getElementById('syncBtn').addEventListener('click', refreshFromFeishu);
+      document.getElementById('keywordInput').addEventListener('input', renderFilteredTable);
+      document.getElementById('rangeSelect').addEventListener('change', () => renderTrendChart(currentBugs));
+
+      document.getElementById('parseBtn').addEventListener('click', () => {
+        const text = document.getElementById('rawInput').value;
+        if (!text.trim()) {
+          alert('请先粘贴 CSV 内容或导入文件。');
+          return;
+        }
+        renderAllFromData(text);
+      });
+
+      document.getElementById('fileInput').addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const bytes = await file.arrayBuffer();
+        let text;
+        try {
+          text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch {
+          text = new TextDecoder('gbk').decode(bytes);
+        }
+        document.getElementById('rawInput').value = text;
+        renderAllFromData(text);
+      });
+
+      renderVerifiedSummary();
+    </script>
+  </body>
+</html>
