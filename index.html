@@ -264,6 +264,15 @@
       .tag.medium { background: #fef3c7; color: #b45309; }
       .tag.low { background: #dcfce7; color: #15803d; }
 
+      .project-link {
+        color: var(--blue);
+        text-decoration: none;
+      }
+
+      .project-link:hover {
+        text-decoration: underline;
+      }
+
       .empty {
         padding: 24px;
         text-align: center;
@@ -686,6 +695,7 @@
         const statusKey = getFieldName(headers, ["状态", "缺陷状态", "status", "state", "处理状态"]);
         const priorityKey = getFieldName(headers, ["优先级", "priority", "严重程度", "severity"]);
         const moduleKey = getFieldName(headers, ["模块", "module", "所属模块", "所属项目模块", "所属项目"]);
+        const projectUrlKey = getFieldName(headers, ["项目链接", "所属项目链接", "项目地址", "项目URL", "projecturl", "projectlink", "moduleurl"]);
         const ownerKey = getFieldName(headers, ["负责人", "owner", "assignee", "责任人", "研发人员"]);
         const typeKey = getFieldName(headers, ["类型", "bug类型", "type", "问题类型"]);
         const urlKey = getFieldName(headers, ["链接", "bug链接", "url", "link", "issueurl", "bugurl", "地址"]);
@@ -697,7 +707,8 @@
           headers.forEach((header, index) => {
             obj[header] = row[index] !== undefined ? row[index].trim() : "";
           });
-          const detectedUrl = row.find(cell => /^https?:\/\//i.test(String(cell).trim())) || "";
+          const projectUrlIndex = projectUrlKey ? headers.indexOf(projectUrlKey) : -1;
+          const detectedUrl = row.find((cell, index) => index !== projectUrlIndex && /^https?:\/\//i.test(String(cell).trim())) || "";
 
           return {
             id: obj[idKey || ""] || "",
@@ -705,6 +716,7 @@
             status: obj[statusKey || headers[1]] || "待处理",
             priority: obj[priorityKey || headers[2]] || "中",
             module: obj[moduleKey || headers[3]] || "未分类",
+            projectUrl: obj[projectUrlKey || ""] || "",
             owner: obj[ownerKey || headers[4]] || "未指派",
             type: obj[typeKey || ""] || "Bug",
             url: obj[urlKey || ""] || detectedUrl,
@@ -952,7 +964,9 @@
                 : escapeHtml(item.title || '—')}</td>
               <td><span class="tag ${tagClass}">${status}</span></td>
               <td><span class="tag ${priorityTag}">${priority}</span></td>
-              <td>${item.module || '未分类'}</td>
+              <td>${safeUrl(item.projectUrl)
+                ? `<a class="project-link" href="${escapeHtml(safeUrl(item.projectUrl))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.module || '未分类')}</a>`
+                : escapeHtml(item.module || '未分类')}</td>
               <td>${item.owner || '未指派'}</td>
             </tr>
           `;
@@ -966,6 +980,7 @@
           status: normalizeStatus(item.status || item.state || '待处理'),
           priority: normalizePriority(item.priority || item.severity || '中'),
           module: String(item.module || item.project || item.category || '未分类').trim() || '未分类',
+          projectUrl: String(item.projectUrl || item.projectLink || item.projectURL || item.moduleUrl || item['项目链接'] || item['所属项目链接'] || item['项目地址'] || '').trim(),
           owner: String(item.owner || item.assignee || item.person || '未指派').trim() || '未指派',
           type: String(item.type || item.issueType || 'Bug').trim() || 'Bug',
           url: String(item.url || item.link || item.href || item.issueUrl || item.bugUrl || item['链接'] || item['Bug链接'] || '').trim(),
@@ -1018,6 +1033,14 @@
           renderTable(stats.bugs.filter(bug => bug.priority === priority));
         });
         renderBarChart('moduleChart', stats.moduleMap.slice(0, 6), modulePalette, module => {
+          const projectUrls = [...new Set(stats.bugs
+            .filter(bug => bug.module === module)
+            .map(bug => safeUrl(bug.projectUrl))
+            .filter(Boolean))];
+          if (projectUrls.length === 1) {
+            window.open(projectUrls[0], '_blank', 'noopener,noreferrer');
+            return;
+          }
           renderTable(stats.bugs.filter(bug => bug.module === module));
         });
         renderFilteredTable();
